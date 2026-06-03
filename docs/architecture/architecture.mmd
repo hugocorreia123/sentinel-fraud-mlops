@@ -1,0 +1,79 @@
+flowchart TB
+  %% ============================================================
+  %% ROW 1 — REAL-TIME INFERENCE (left to right)
+  %% ============================================================
+  subgraph ROW1[" "]
+    direction LR
+    req([📥 Transaction]):::edge
+    api[🚦 <b>FastAPI</b><br/><i>p99 &lt; 100ms</i>]:::api
+    redis[(⚡ Redis<br/>features)]:::store
+    champ[🏆 Champion<br/>LightGBM]:::champ
+    chal[🧪 Challenger<br/>Tabular NN]:::chal
+    decision{{⚖️ Cost-aware<br/>decision}}:::decision
+    resp([✅ Approve / Block]):::edge
+
+    req --> api
+    api <--> redis
+    api --> champ
+    api -.shadow.-> chal
+    champ --> decision
+    chal -.logged.-> decision
+    decision --> resp
+  end
+
+  %% ============================================================
+  %% ROW 2 — OBSERVABILITY (continuous)
+  %% ============================================================
+  subgraph ROW2[" "]
+    direction LR
+    prom[(📊 Prometheus)]:::obs
+    evid[🔍 Evidently<br/>drift]:::obs
+    graf[📈 Grafana]:::obs
+    alert[🚨 Alertmanager]:::obs
+
+    prom --> graf
+    prom --> alert
+    evid --> alert
+  end
+
+  %% ============================================================
+  %% ROW 3 — OFFLINE TRAINING & EVALUATION
+  %% ============================================================
+  subgraph ROW3[" "]
+    direction LR
+    data[(🗄️ IEEE-CIS<br/>+ synthetic)]:::data
+    train[🧠 Training<br/>pipeline]:::mlops
+    mlflow[📦 MLflow<br/>registry]:::mlops
+    adv[⚔️ Adversarial<br/>eval]:::eval
+    load[🐝 Locust<br/>load test]:::eval
+
+    data --> train --> mlflow
+    mlflow --> adv
+  end
+
+  %% ============================================================
+  %% CROSS-ROW CONNECTIONS — only vertical
+  %% ============================================================
+  api ---> prom
+  api ---> evid
+  mlflow -.deploys.-> champ
+  mlflow -.deploys.-> chal
+  load -.replays.-> api
+
+  %% ============================================================
+  %% STYLES
+  %% ============================================================
+  classDef edge fill:#F9FAFB,stroke:#374151,color:#111,stroke-width:2px
+  classDef api fill:#2563EB,stroke:#1E3A8A,color:#FFF,stroke-width:3px
+  classDef store fill:#FECACA,stroke:#991B1B,color:#111,stroke-width:2px
+  classDef champ fill:#FBBF24,stroke:#92400E,color:#111,stroke-width:2px
+  classDef chal fill:#FDE68A,stroke:#92400E,color:#111,stroke-width:2px,stroke-dasharray:5 3
+  classDef decision fill:#F59E0B,stroke:#78350F,color:#FFF,stroke-width:2px
+  classDef obs fill:#86EFAC,stroke:#15803D,color:#111,stroke-width:2px
+  classDef data fill:#C7D2FE,stroke:#3730A3,color:#111,stroke-width:2px
+  classDef mlops fill:#DDD6FE,stroke:#6B21A8,color:#111,stroke-width:2px
+  classDef eval fill:#FBCFE8,stroke:#9D174D,color:#111,stroke-width:2px
+
+  style ROW1 fill:#EFF6FF,stroke:#3B82F6,stroke-width:2px
+  style ROW2 fill:#F0FDF4,stroke:#22C55E,stroke-width:1.5px,stroke-dasharray:4 4
+  style ROW3 fill:#FAF5FF,stroke:#A855F7,stroke-width:1.5px,stroke-dasharray:4 4
