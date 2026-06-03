@@ -87,6 +87,8 @@ open http://localhost:8501   # Streamlit — control panel
 ---
 
 ## 📁 Repository structure
+
+```
 sentinel-fraud-mlops/
 ├── apps/
 │   ├── inference/          # FastAPI inference service
@@ -115,6 +117,7 @@ sentinel-fraud-mlops/
 ├── docker-compose.yml      # Full stack: inference + Redis + Prometheus + Grafana + MLflow
 ├── pyproject.toml          # uv-managed dependencies
 └── README.md
+```
 
 ---
 
