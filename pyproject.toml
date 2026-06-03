@@ -38,6 +38,7 @@ dependencies = [
     "pyyaml>=6.0.0",
     "python-dotenv>=1.0.0",
     "loguru>=0.7.0",
+    "kaggle>=2.2.1",
 ]
 
 [dependency-groups]
