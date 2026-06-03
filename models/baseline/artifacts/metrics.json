@@ -1,0 +1,60 @@
+{
+  "model": "lightgbm_baseline",
+  "train_seconds": 4.49,
+  "best_iteration": 1,
+  "val": {
+    "roc_auc": 0.9997172535967913,
+    "pr_auc": 0.5089285714285714
+  },
+  "holdout": {
+    "roc_auc": 0.999592653083504,
+    "pr_auc": 0.8908657400509054
+  },
+  "precision_at_k": {
+    "100": 0.94,
+    "500": 0.938,
+    "1000": 0.915
+  },
+  "top_features": [
+    {
+      "name": "balance_mismatch",
+      "gain": 1571559936.0
+    },
+    {
+      "name": "newbalanceOrig",
+      "gain": 767140992.0
+    },
+    {
+      "name": "amount",
+      "gain": 58231178.5
+    },
+    {
+      "name": "amount_to_balance_ratio",
+      "gain": 18329395.900390625
+    },
+    {
+      "name": "oldbalanceDest",
+      "gain": 5163821.031738281
+    },
+    {
+      "name": "newbalanceDest",
+      "gain": 3147032.201171875
+    },
+    {
+      "name": "rolling_mean_amount",
+      "gain": 2507414.599609375
+    },
+    {
+      "name": "orig_balance_delta",
+      "gain": 2484367.19921875
+    },
+    {
+      "name": "dest_balance_delta",
+      "gain": 1808640.0
+    },
+    {
+      "name": "type_TRANSFER",
+      "gain": 1396335.0
+    }
+  ]
+}
