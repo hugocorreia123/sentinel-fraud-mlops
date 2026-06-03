@@ -59,6 +59,7 @@ and Locust load testing at 800+ RPS.
 
 See [`docs/reports/phase2_model_comparison.md`](docs/reports/phase2_model_comparison.md)
 for the full Phase 2 writeup, including the cost-aware threshold analysis.
+
 ---
 
 ## 🛠️ Stack
