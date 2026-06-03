@@ -12,9 +12,13 @@
 
 Sentinel is a complete real-time fraud-detection system, built end-to-end on local infrastructure. It is intentionally production-shaped: every component a real fraud team at a bank or fintech would build — from the cost-aware decision threshold, to the champion/challenger shadow deployment, to the drift detector and adversarial robustness eval — is present and working.
 
-The dataset is the IEEE-CIS Fraud Detection benchmark (~590,000 real transactions, ~400 features), supplemented by a synthetic transaction-stream generator that lets us inject controlled drift and adversarial scenarios for testing.
+The dataset is **PaySim** — a public synthetic mobile-money simulation with 6.36 million transactions, real fraud labels, and plain-English column names (transaction type, originator/destination balances, amount). It is the modern fraud-MLOps benchmark of choice because it has more rows than IEEE-CIS, no anonymised features, and clear adversarial signal (multi-step balance drains, velocity-driven fraud). A synthetic stream generator layered on top lets us inject controlled drift and adversarial scenarios for testing.
 
 This is not a Kaggle notebook. It is the system around the notebook.
+
+### About the dataset
+
+PaySim ([Lopez-Rojas et al., 2016](https://www.kaggle.com/datasets/ealaxi/paysim1)) simulates mobile-money transactions calibrated against a real African mobile-money operator. It contains 6,362,620 rows across 31 simulated days, with 8,213 confirmed fraud cases (~0.13% base rate, highly imbalanced — as real fraud data is). Critically for this project's purposes, **the fraud rate is not stationary in time**: it climbs from ~0.08% in the first 70% of the data to ~0.42% in the final 15% — a 5× drift that justifies the existence of the project's drift-detection layer.
 
 ---
 
