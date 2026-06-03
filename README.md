@@ -38,6 +38,19 @@ Most ML portfolios stop at training a model. Sentinel is built around the *syste
 
 The wow is not in any single piece — it's that all of them are present, integrated, and reproducible from a single `docker compose up`.
 
+### Baseline results (Phase 1)
+
+A 25-feature LightGBM trained in **4.5 seconds** on 4.4M PaySim transactions establishes the floor every later model must beat:
+
+| Metric | Validation | Holdout |
+|---|---:|---:|
+| ROC-AUC | 0.9997 | 0.9996 |
+| PR-AUC | 0.509 | 0.891 |
+| Precision @ top 100 (operational) | — | **94%** |
+| Precision @ top 1,000 | — | **91.5%** |
+
+The fraud team's daily review queue would be 94% real fraud at the top 100 ranks — meaning ~6 false positives per 100 reviewed cases. Phase 2 trains the production champion (tuned LightGBM with a cost-aware decision threshold) and the challenger (tabular neural net), both versioned in MLflow.
+
 ---
 
 ## 🛠️ Stack
