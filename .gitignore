@@ -216,3 +216,42 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# uv
+.venv/
+uv.lock.bak
+
+# Data (datasets are large, downloaded by scripts; never committed)
+data/raw/
+data/processed/
+data/synthetic/
+*.parquet
+*.feather
+
+# Models (artifacts are produced by training; never committed)
+mlruns/
+mlartifacts/
+models/champion/artifacts/
+models/challenger/artifacts/
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+
+# Monitoring runtime state
+monitoring/prometheus/data/
+monitoring/grafana/data/
+
+# Notebook outputs (committed notebooks should be cleared before push)
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Local secrets
+.env
+.env.local
