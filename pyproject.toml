@@ -41,6 +41,7 @@ dependencies = [
     "kaggle>=2.2.1",
     "optuna>=4.9.0",
     "optuna-integration[mlflow]>=4.9.0",
+    "matplotlib>=3.10.9",
 ]
 
 [dependency-groups]
