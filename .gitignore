@@ -255,3 +255,8 @@ monitoring/grafana/data/
 # Local secrets
 .env
 .env.local
+
+# MLflow SQLite tracking DB and artifacts
+mlflow.db
+mlflow.db-journal
+mlartifacts/

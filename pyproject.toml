@@ -39,6 +39,8 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "loguru>=0.7.0",
     "kaggle>=2.2.1",
+    "optuna>=4.9.0",
+    "optuna-integration[mlflow]>=4.9.0",
 ]
 
 [dependency-groups]
