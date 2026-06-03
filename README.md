@@ -38,19 +38,27 @@ Most ML portfolios stop at training a model. Sentinel is built around the *syste
 
 The wow is not in any single piece — it's that all of them are present, integrated, and reproducible from a single `docker compose up`.
 
-### Baseline results (Phase 1)
+---
 
-A 25-feature LightGBM trained in **4.5 seconds** on 4.4M PaySim transactions establishes the floor every later model must beat:
+### Results so far (Phases 1 + 2)
 
-| Metric | Validation | Holdout |
-|---|---:|---:|
-| ROC-AUC | 0.9997 | 0.9996 |
-| PR-AUC | 0.509 | 0.891 |
-| Precision @ top 100 (operational) | — | **94%** |
-| Precision @ top 1,000 | — | **91.5%** |
+Two production models trained, tracked in MLflow, and registered. Same 25-feature
+pipeline, three different learning paradigms:
 
-The fraud team's daily review queue would be 94% real fraud at the top 100 ranks — meaning ~6 false positives per 100 reviewed cases. Phase 2 trains the production champion (tuned LightGBM with a cost-aware decision threshold) and the challenger (tabular neural net), both versioned in MLflow.
+| Model | Family | Train time | Holdout PR-AUC | Precision@100 |
+|---|---|---:|---:|---:|
+| Baseline | LightGBM defaults | 4.5s | 0.891 | 94.0% |
+| **Champion** | LightGBM + Optuna (30 trials) | 6.6s | **0.9995** | **100%** |
+| **Challenger** | PyTorch MLP, MPS-accelerated | 491s | **0.9963** | **100%** |
 
+Both production models reach the dataset's ceiling — PaySim is signal-rich and
+solvable. The portfolio value from Phase 3 onward is the **system around the model**:
+sub-100ms FastAPI inference, Redis feature store, shadow-mode A/B routing,
+Prometheus + Grafana + Evidently drift detection, adversarial robustness eval,
+and Locust load testing at 800+ RPS.
+
+See [`docs/reports/phase2_model_comparison.md`](docs/reports/phase2_model_comparison.md)
+for the full Phase 2 writeup, including the cost-aware threshold analysis.
 ---
 
 ## 🛠️ Stack
