@@ -40,10 +40,10 @@ The wow is not in any single piece — it's that all of them are present, integr
 
 ---
 
-### Results so far (Phases 1 + 2)
+### Results so far (Phases 1 + 2 + 3)
 
-Two production models trained, tracked in MLflow, and registered. Same 25-feature
-pipeline, three different learning paradigms:
+**Modelling (Phases 1 & 2)** — Two production models trained, tracked in MLflow,
+and registered. Same 25-feature pipeline, three different learning paradigms:
 
 | Model | Family | Train time | Holdout PR-AUC | Precision@100 |
 |---|---|---:|---:|---:|
@@ -51,14 +51,25 @@ pipeline, three different learning paradigms:
 | **Champion** | LightGBM + Optuna (30 trials) | 6.6s | **0.9995** | **100%** |
 | **Challenger** | PyTorch MLP, MPS-accelerated | 491s | **0.9963** | **100%** |
 
-Both production models reach the dataset's ceiling — PaySim is signal-rich and
-solvable. The portfolio value from Phase 3 onward is the **system around the model**:
-sub-100ms FastAPI inference, Redis feature store, shadow-mode A/B routing,
-Prometheus + Grafana + Evidently drift detection, adversarial robustness eval,
-and Locust load testing at 800+ RPS.
+**Inference service (Phase 3)** — FastAPI app loads champion + tuned threshold
+from MLflow registry at startup; reads online velocity features from Redis;
+returns scored decisions with full traceability. Load-tested with Locust:
+
+| Metric | Result | SLO |
+|---|---:|---:|
+| Sustained throughput | **1,371 RPS** | 200+ |
+| Total requests (30s test) | 38,482 | — |
+| Failures | **0 (0.00%)** | 0 |
+| p50 latency | 25ms | <50ms |
+| p95 latency | 82ms | <100ms |
+| **p99 latency** | **96ms** | **<100ms** |
+
+Single uvicorn worker on a MacBook Pro. Horizontal scaling (`--workers 4` +
+load balancer) would 4× throughput at near-constant per-request latency.
 
 See [`docs/reports/phase2_model_comparison.md`](docs/reports/phase2_model_comparison.md)
-for the full Phase 2 writeup, including the cost-aware threshold analysis.
+for the full Phase 2 writeup. Phase 3 inference contract:
+[`apps/inference/schemas.py`](apps/inference/schemas.py).
 
 ---
 
