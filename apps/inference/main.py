@@ -26,6 +26,19 @@ from apps.inference.schemas import (
     TransactionRequest,
 )
 
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import PlainTextResponse
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
+from apps.inference.metrics import (
+    FRAUD_PROBABILITY,
+    MODEL_LOADED,
+    PREDICTIONS_TOTAL,
+    PREDICTION_LATENCY,
+    REDIS_LATENCY,
+    REDIS_REACHABLE,
+)
+
 # ----- module-level state, populated at startup --------------------
 SERVICE_STARTED_AT = time.time()
 MODEL: LoadedModel | None = None
@@ -41,6 +54,7 @@ async def lifespan(app: FastAPI):
     logger.info("Sentinel inference service starting…")
 
     MODEL = load_champion()
+    MODEL_LOADED.set(1)
     logger.success(
         f"Champion loaded: {MODEL.name} v{MODEL.version}, "
         f"{MODEL.n_features} features, threshold={MODEL.threshold:.4f}"
@@ -50,10 +64,12 @@ async def lifespan(app: FastAPI):
                         socket_connect_timeout=1, socket_timeout=1)
     try:
         REDIS.ping()
+        REDIS_REACHABLE.set(1)
         logger.success("Connected to Redis feature store")
     except Exception as e:
         logger.warning(f"Redis unreachable at startup: {e}")
-        REDIS = None  # service still works; velocity features default to 0
+        REDIS = None    # service still works; velocity features default to 0
+        REDIS_REACHABLE.set(0)  
 
     yield
 
@@ -120,7 +136,8 @@ def _fetch_velocity(name_orig: str) -> tuple[int, int, int]:
     if REDIS is None:
         return 0, 0, 0
     try:
-        vals = REDIS.hmget(f"sentinel:velocity:{name_orig}", "v1h", "v6h", "v24h")
+        with REDIS_LATENCY.time():
+            vals = REDIS.hmget(f"sentinel:velocity:{name_orig}", "v1h", "v6h", "v24h")
         return tuple(int(v) if v is not None else 0 for v in vals)  # type: ignore[return-value]
     except Exception as e:
         logger.warning(f"Redis lookup failed for {name_orig}: {e}")
@@ -203,10 +220,16 @@ def predict(tx: TransactionRequest) -> PredictionResponse:
     request_id = uuid.uuid4().hex[:12]
     t0 = time.perf_counter()
 
-    velocity = _fetch_velocity(tx.nameOrig)
-    X = _build_feature_vector(tx, velocity)
-    proba = float(MODEL.booster.predict(X, num_iteration=MODEL.booster.best_iteration)[0])
-    decision = "BLOCK" if proba >= MODEL.threshold else "APPROVE"
+    with PREDICTION_LATENCY.time():
+        velocity = _fetch_velocity(tx.nameOrig)
+        X = _build_feature_vector(tx, velocity)
+        proba = float(
+            MODEL.booster.predict(X, num_iteration=MODEL.booster.best_iteration)[0]
+        )
+        decision = "BLOCK" if proba >= MODEL.threshold else "APPROVE"
+
+    FRAUD_PROBABILITY.observe(proba)
+    PREDICTIONS_TOTAL.labels(decision=decision).inc()
 
     latency_ms = round((time.perf_counter() - t0) * 1000, 2)
 
@@ -220,3 +243,21 @@ def predict(tx: TransactionRequest) -> PredictionResponse:
         features_used=MODEL.n_features,
         request_id=request_id,
     )
+
+# ============================================================
+#  /metrics  — Prometheus text format
+# ============================================================
+@app.get("/metrics", include_in_schema=False)
+def metrics() -> Response:
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+# ============================================================
+#  Middleware — add a request-id header to every response
+# ============================================================
+@app.middleware("http")
+async def add_request_id_header(request: Request, call_next):
+    rid = uuid.uuid4().hex[:12]
+    response = await call_next(request)
+    response.headers["X-Request-Id"] = rid
+    return response
