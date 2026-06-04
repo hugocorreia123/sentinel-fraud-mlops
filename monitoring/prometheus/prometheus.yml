@@ -1,0 +1,23 @@
+# Prometheus config for Sentinel.
+# Scrapes the FastAPI inference service's /metrics endpoint every 5s.
+# The service runs on the host (not in Docker) at port 8000, hence host.docker.internal.
+
+global:
+  scrape_interval: 5s
+  evaluation_interval: 10s
+  external_labels:
+    project: sentinel
+
+scrape_configs:
+  - job_name: sentinel-inference
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - host.docker.internal:8000
+        labels:
+          service: inference
+
+  - job_name: prometheus-self
+    static_configs:
+      - targets:
+          - localhost:9090
