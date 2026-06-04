@@ -40,9 +40,13 @@ The metrics looked great. The system behaved nothing like the metrics said.
 
 Drilling into the actual standardized inputs the MLP was seeing on a clean
 PAYMENT (amount=50, balance=1000):
+
+```
 velocity_count_1h:   -31.19 std away from training mean
 velocity_count_6h:   -31.14 std away
 velocity_count_24h:  -31.11 std away
+```
+
 Three inputs were ~31 standard deviations below zero. The cause:
 
 1. In PaySim training data, **velocity counters are near-constant** —
