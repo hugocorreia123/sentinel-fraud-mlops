@@ -260,3 +260,4 @@ monitoring/grafana/data/
 mlflow.db
 mlflow.db-journal
 mlartifacts/
+data/predictions.db*

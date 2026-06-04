@@ -28,6 +28,9 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from loguru import logger
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from apps.inference.prediction_log import PredictionLog, PredictionRecord
+from apps.inference.routing import pick_serving_model
+
 from apps.inference.metrics import (
     FRAUD_PROBABILITY,
     MODEL_LOADED,
@@ -91,6 +94,10 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Redis unreachable at startup: {e}")
         REDIS_REACHABLE.set(0)
         REDIS = None
+
+    global PRED_LOG
+    PRED_LOG = PredictionLog()
+    logger.success(f"Prediction log ready ({PRED_LOG.count()} existing rows)")
 
     yield
 
@@ -264,23 +271,68 @@ def predict(tx: TransactionRequest) -> PredictionResponse:
 
     with PREDICTION_LATENCY.time():
         velocity = _fetch_velocity(tx.nameOrig)
+
+        # Champion (always scored)
         X = _build_feature_vector(tx, velocity)
-        proba = float(
+        champion_proba = float(
             MODEL.booster.predict(X, num_iteration=MODEL.booster.best_iteration)[0]
         )
-        decision = "BLOCK" if proba >= MODEL.threshold else "APPROVE"
+        champion_decision = "BLOCK" if champion_proba >= MODEL.threshold else "APPROVE"
 
-    FRAUD_PROBABILITY.observe(proba)
-    PREDICTIONS_TOTAL.labels(decision=decision).inc()
+        # Challenger (shadow-scored if loaded)
+        challenger_proba = _challenger_score(tx, velocity)
+        challenger_decision: str | None = None
+        if challenger_proba is not None:
+            challenger_decision = (
+                "BLOCK" if challenger_proba >= MODEL.threshold else "APPROVE"
+            )
+
+        # Decide whose answer to serve
+        served_by = pick_serving_model(request_id)
+        if served_by == "challenger" and challenger_proba is not None:
+            served_proba = challenger_proba
+            served_decision = challenger_decision  # type: ignore[assignment]
+            served_model_name = CHALLENGER.name  # type: ignore[union-attr]
+            served_model_version = CHALLENGER.version  # type: ignore[union-attr]
+        else:
+            served_by = "champion"  # fall back if challenger unavailable
+            served_proba = champion_proba
+            served_decision = champion_decision
+            served_model_name = MODEL.name
+            served_model_version = MODEL.version
+
+    FRAUD_PROBABILITY.observe(served_proba)
+    PREDICTIONS_TOTAL.labels(decision=served_decision).inc()
 
     latency_ms = round((time.perf_counter() - t0) * 1000, 2)
 
+    # Log both predictions for offline analysis
+    if PRED_LOG is not None:
+        try:
+            PRED_LOG.write(PredictionRecord(
+                request_id=request_id,
+                ts_unix=time.time(),
+                served_by=served_by,
+                decision_served=served_decision,
+                champion_proba=champion_proba,
+                challenger_proba=challenger_proba,
+                champion_decision=champion_decision,
+                challenger_decision=challenger_decision,
+                threshold_used=MODEL.threshold,
+                latency_ms=latency_ms,
+                tx_type=tx.type,
+                tx_amount=tx.amount,
+                name_orig=tx.nameOrig,
+            ))
+        except Exception as e:
+            logger.warning(f"Prediction log write failed: {e}")
+
     return PredictionResponse(
-        decision=decision,
-        fraud_probability=round(proba, 6),
+        decision=served_decision,
+        fraud_probability=round(served_proba, 6),
         threshold_used=MODEL.threshold,
-        model_name=MODEL.name,
-        model_version=MODEL.version,
+        model_name=served_model_name,
+        model_version=served_model_version,
         latency_ms=latency_ms,
         features_used=MODEL.n_features,
         request_id=request_id,
