@@ -5,6 +5,10 @@ the artifacts directory. Holds them in process memory; no per-request loading.
 """
 from __future__ import annotations
 
+import tempfile
+
+from mlflow.artifacts import download_artifacts
+
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -41,8 +45,22 @@ def load_champion() -> LoadedModel:
     mlflow.set_tracking_uri(MLFLOW_URI)
 
     model_uri = f"models:/{REGISTERED_MODEL_NAME}/latest"
-    logger.info(f"Loading champion from {model_uri}")
-    booster: lgb.Booster = mlflow.lightgbm.load_model(model_uri)
+    logger.info(f"Downloading champion artifacts from {model_uri}")
+    local_dir = Path(download_artifacts(artifact_uri=model_uri,
+                                          dst_path=tempfile.mkdtemp()))
+    files = list(local_dir.rglob("*"))
+    logger.info(f"Downloaded {len(files)} files to {local_dir}")
+    candidates = [p for p in files if p.suffix in (".lgb", ".txt") and "model" in p.stem]
+    if not candidates:
+        raise FileNotFoundError(
+            f"No LightGBM model file found in {local_dir}. Files: {files}"
+        )
+    model_file = candidates[0]
+    logger.info(f"Loading booster from {model_file}")
+    booster: lgb.Booster = lgb.Booster(
+        model_file=str(model_file),
+        params={"num_threads": 1, "predict_disable_shape_check": True},
+    )
 
     # Get registered model metadata for version + stage
     client = mlflow.MlflowClient()
@@ -71,5 +89,56 @@ def load_champion() -> LoadedModel:
         feature_names=feature_names,
         n_features=len(feature_names),
         threshold=threshold,
+        loaded_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    )
+
+import torch
+from models.challenger.model import FraudMLP
+
+
+@dataclass
+class LoadedChallenger:
+    """The PyTorch challenger plus its scaler + feature order."""
+    model: FraudMLP
+    name: str
+    version: str
+    feature_names: list[str]  # ordered numeric feature names (no one-hot type cols)
+    scaler_mean: torch.Tensor
+    scaler_std: torch.Tensor
+    device: torch.device
+    loaded_at: str
+
+
+def load_challenger() -> LoadedChallenger:
+    """Load the challenger from the saved torch artifact + scaler."""
+    artifact_path = PROJECT_ROOT / "models" / "challenger" / "artifacts" / "model.pt"
+    if not artifact_path.exists():
+        raise FileNotFoundError(
+            f"Challenger artifact not found at {artifact_path}. "
+            "Run `uv run python -m models.challenger.train` first."
+        )
+
+    # Load to CPU at inference — MPS for batch training, CPU is fine for one tx
+    device = torch.device("cpu")
+    blob = torch.load(artifact_path, map_location=device, weights_only=False)
+
+    numeric_cols: list[str] = blob["numeric_cols"]
+    model = FraudMLP(n_numeric_features=len(numeric_cols)).to(device)
+    model.load_state_dict(blob["state_dict"])
+    model.eval()
+
+    # Get registered version from MLflow
+    client = mlflow.MlflowClient()
+    versions = client.search_model_versions("name='sentinel-challenger'")
+    latest = max(versions, key=lambda v: int(v.version)) if versions else None
+
+    return LoadedChallenger(
+        model=model,
+        name="sentinel-challenger",
+        version=str(latest.version) if latest else "local",
+        feature_names=numeric_cols,
+        scaler_mean=torch.from_numpy(blob["scaler_mean"]).to(device),
+        scaler_std=torch.from_numpy(blob["scaler_std"]).to(device),
+        device=device,
         loaded_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
     )

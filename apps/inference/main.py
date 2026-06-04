@@ -9,25 +9,23 @@ Run locally:
 """
 from __future__ import annotations
 
+import os
+
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+os.environ.setdefault("OBJC_DISABLE_INITIALIZE_FORK_SAFETY", "YES")
+os.environ.setdefault("MLFLOW_DISABLE_ENV_CREATION", "TRUE")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("LIGHTGBM_EXEC_THREADS", "1")
+
 import time
 import uuid
 from contextlib import asynccontextmanager
 
 import numpy as np
 import redis
-from fastapi import FastAPI, HTTPException
-from loguru import logger
-
-from apps.inference.model_loader import LoadedModel, load_champion
-from apps.inference.schemas import (
-    HealthResponse,
-    ModelInfoResponse,
-    PredictionResponse,
-    TransactionRequest,
-)
-
+import torch
 from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.responses import PlainTextResponse
+from loguru import logger
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from apps.inference.metrics import (
@@ -38,10 +36,23 @@ from apps.inference.metrics import (
     REDIS_LATENCY,
     REDIS_REACHABLE,
 )
+from apps.inference.model_loader import (
+    LoadedChallenger,
+    LoadedModel,
+    load_challenger,
+    load_champion,
+)
+from apps.inference.schemas import (
+    HealthResponse,
+    ModelInfoResponse,
+    PredictionResponse,
+    TransactionRequest,
+)
 
 # ----- module-level state, populated at startup --------------------
 SERVICE_STARTED_AT = time.time()
 MODEL: LoadedModel | None = None
+CHALLENGER: LoadedChallenger | None = None
 REDIS: redis.Redis | None = None
 
 TYPE_INDEX = {"CASH_IN": 0, "CASH_OUT": 1, "DEBIT": 2, "PAYMENT": 3, "TRANSFER": 4}
@@ -50,7 +61,7 @@ TYPE_INDEX = {"CASH_IN": 0, "CASH_OUT": 1, "DEBIT": 2, "PAYMENT": 3, "TRANSFER":
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load the model + connect to Redis at startup; clean up on shutdown."""
-    global MODEL, REDIS
+    global MODEL, CHALLENGER, REDIS
     logger.info("Sentinel inference service starting…")
 
     MODEL = load_champion()
@@ -60,6 +71,16 @@ async def lifespan(app: FastAPI):
         f"{MODEL.n_features} features, threshold={MODEL.threshold:.4f}"
     )
 
+    try:
+        CHALLENGER = load_challenger()
+        logger.success(
+            f"Challenger loaded: {CHALLENGER.name} v{CHALLENGER.version}, "
+            f"{len(CHALLENGER.feature_names)} numeric features"
+        )
+    except Exception as e:
+        logger.warning(f"Challenger unavailable: {e}")
+        CHALLENGER = None
+
     REDIS = redis.Redis(host="localhost", port=6379, decode_responses=True,
                         socket_connect_timeout=1, socket_timeout=1)
     try:
@@ -68,8 +89,8 @@ async def lifespan(app: FastAPI):
         logger.success("Connected to Redis feature store")
     except Exception as e:
         logger.warning(f"Redis unreachable at startup: {e}")
-        REDIS = None    # service still works; velocity features default to 0
-        REDIS_REACHABLE.set(0)  
+        REDIS_REACHABLE.set(0)
+        REDIS = None
 
     yield
 
@@ -129,7 +150,7 @@ def model_info() -> ModelInfoResponse:
 
 
 # ============================================================
-#  /predict
+#  Feature engineering at inference time
 # ============================================================
 def _fetch_velocity(name_orig: str) -> tuple[int, int, int]:
     """Look up (v1h, v6h, v24h) from Redis. Returns zeros if unavailable."""
@@ -144,15 +165,10 @@ def _fetch_velocity(name_orig: str) -> tuple[int, int, int]:
         return 0, 0, 0
 
 
-def _build_feature_vector(tx: TransactionRequest,
-                          velocity: tuple[int, int, int]) -> np.ndarray:
-    """Replicate the offline feature engineering for one transaction.
-
-    Order MUST match the training feature order (MODEL.feature_names).
-    """
+def _build_full_feature_map(tx: TransactionRequest,
+                             velocity: tuple[int, int, int]) -> dict[str, float]:
+    """Compute the union of all feature values needed by champion or challenger."""
     v1h, v6h, v24h = velocity
-
-    # Static features
     log_amount = np.log1p(tx.amount)
     orig_balance_delta = tx.oldbalanceOrg - tx.newbalanceOrig
     dest_balance_delta = tx.newbalanceDest - tx.oldbalanceDest
@@ -166,13 +182,10 @@ def _build_feature_vector(tx: TransactionRequest,
     )
     dest_is_merchant = int(tx.nameDest.startswith("M"))
 
-    # One-hot type
     type_one_hot = [0] * 5
     type_one_hot[TYPE_INDEX[tx.type]] = 1
 
-    # Build features in the SAME order as training. The model's
-    # booster.feature_name() gives us the canonical order.
-    feature_map = {
+    return {
         "amount": tx.amount,
         "oldbalanceOrg": tx.oldbalanceOrg,
         "newbalanceOrig": tx.newbalanceOrig,
@@ -194,12 +207,15 @@ def _build_feature_vector(tx: TransactionRequest,
         "velocity_count_1h": v1h,
         "velocity_count_6h": v6h,
         "velocity_count_24h": v24h,
-        # Behavioural features — at inference we don't have history,
-        # so we approximate. Real systems compute these from a feature store.
-        "rolling_mean_amount": tx.amount,  # fallback: assume mean = current
+        "rolling_mean_amount": tx.amount,
         "amount_vs_rolling_mean": 1.0,
     }
 
+
+def _build_feature_vector(tx: TransactionRequest,
+                          velocity: tuple[int, int, int]) -> np.ndarray:
+    """Build the LightGBM input row in the model's expected feature order."""
+    feature_map = _build_full_feature_map(tx, velocity)
     assert MODEL is not None
     try:
         vec = np.array([feature_map[name] for name in MODEL.feature_names],
@@ -212,6 +228,32 @@ def _build_feature_vector(tx: TransactionRequest,
     return vec.reshape(1, -1)
 
 
+def _challenger_score(tx: TransactionRequest,
+                       velocity: tuple[int, int, int]) -> float | None:
+    """Score one transaction with the challenger MLP. Returns None if unavailable."""
+    if CHALLENGER is None:
+        return None
+    try:
+        feature_map = _build_full_feature_map(tx, velocity)
+        numeric = [feature_map[name] for name in CHALLENGER.feature_names]
+        x_num = torch.tensor([numeric], dtype=torch.float32, device=CHALLENGER.device)
+        x_num = (x_num - CHALLENGER.scaler_mean) / CHALLENGER.scaler_std
+
+        type_index = TYPE_INDEX[tx.type]
+        x_type = torch.tensor([type_index], dtype=torch.long, device=CHALLENGER.device)
+
+        with torch.no_grad():
+            logits = CHALLENGER.model(x_num, x_type)
+            proba = torch.sigmoid(logits).item()
+        return float(proba)
+    except Exception as e:
+        logger.warning(f"Challenger scoring failed: {e}")
+        return None
+
+
+# ============================================================
+#  /predict
+# ============================================================
 @app.post("/predict", response_model=PredictionResponse)
 def predict(tx: TransactionRequest) -> PredictionResponse:
     if MODEL is None:
@@ -243,6 +285,7 @@ def predict(tx: TransactionRequest) -> PredictionResponse:
         features_used=MODEL.n_features,
         request_id=request_id,
     )
+
 
 # ============================================================
 #  /metrics  — Prometheus text format
