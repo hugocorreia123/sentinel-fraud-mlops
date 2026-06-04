@@ -1,0 +1,82 @@
+
+# Sentinel alert rules.
+# Evaluated by Prometheus every 10s; viewable in the Prometheus UI at /alerts.
+# In a production deployment these would route through Alertmanager to Slack/PagerDuty.
+
+groups:
+  - name: sentinel-slo
+    interval: 30s
+    rules:
+      - alert: HighPredictionLatency
+        expr: histogram_quantile(0.99, sum(rate(sentinel_prediction_latency_seconds_bucket[2m])) by (le)) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          slo: latency
+        annotations:
+          summary: "p99 prediction latency above 100ms"
+          description: "p99 is {{ $value | humanizeDuration }} over the last 2 minutes — exceeds the 100ms SLO."
+
+      - alert: NoTrafficReceived
+        expr: sum(rate(sentinel_predictions_total[5m])) == 0
+        for: 5m
+        labels:
+          severity: info
+          slo: availability
+        annotations:
+          summary: "No predictions in the last 5 minutes"
+          description: "The inference service has received no traffic. May indicate an upstream outage."
+
+  - name: sentinel-quality
+    interval: 30s
+    rules:
+      - alert: HighBlockRate
+        expr: |
+          sum(rate(sentinel_predictions_total{decision="BLOCK"}[5m]))
+          /
+          sum(rate(sentinel_predictions_total[5m]))
+          > 0.20
+        for: 5m
+        labels:
+          severity: warning
+          category: model-quality
+        annotations:
+          summary: "Block rate above 20%"
+          description: "Block rate is {{ $value | humanizePercentage }} over the last 5 minutes. Investigate for drift, attack, or model regression."
+
+      - alert: PredictionScoreSaturation
+        expr: |
+          sum(rate(sentinel_fraud_probability_bucket{le="1.0"}[5m]))
+          - sum(rate(sentinel_fraud_probability_bucket{le="0.99"}[5m]))
+          >
+          0.5 * sum(rate(sentinel_predictions_total[5m]))
+        for: 5m
+        labels:
+          severity: warning
+          category: model-calibration
+        annotations:
+          summary: "More than 50% of predictions scoring above 0.99"
+          description: "Model is producing saturated probabilities for the majority of traffic. Likely calibration issue or distribution shift."
+
+  - name: sentinel-availability
+    interval: 30s
+    rules:
+      - alert: ModelNotLoaded
+        expr: sentinel_model_loaded == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Champion model is not loaded"
+          description: "The inference service reports model_loaded=0. Predictions cannot be served."
+
+      - alert: RedisUnreachable
+        expr: sentinel_redis_reachable == 0
+        for: 1m
+        labels:
+          severity: warning
+          category: availability
+        annotations:
+          summary: "Redis feature store is unreachable"
+          description: "Velocity features will default to zero. Predictions still work but with degraded feature richness."
