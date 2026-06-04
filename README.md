@@ -40,7 +40,7 @@ The wow is not in any single piece — it's that all of them are present, integr
 
 ---
 
-### Results so far (Phases 1 + 2 + 3)
+### Results so far (Phases 1–4)
 
 **Modelling (Phases 1 & 2)** — Two production models trained, tracked in MLflow,
 and registered. Same 25-feature pipeline, three different learning paradigms:
@@ -66,6 +66,23 @@ returns scored decisions with full traceability. Load-tested with Locust:
 
 Single uvicorn worker on a MacBook Pro. Horizontal scaling (`--workers 4` +
 load balancer) would 4× throughput at near-constant per-request latency.
+
+**Shadow mode + A/B routing (Phase 4)** — Both models score every request;
+champion's decision is served; challenger runs in shadow. Stable SHA-256
+hash on `request_id` controls the traffic split via `CHALLENGER_TRAFFIC_PCT`.
+Every prediction is written to a SQLite log for offline analysis.
+
+| Metric | Before fix | After fix |
+|---|---:|---:|
+| Agreement rate (24,814 preds) | 5.07% | **100.000%** |
+| Probability correlation | 0.79 | **0.9999** |
+
+Shadow mode caught a feature-distribution-shift bug invisible to holdout
+PR-AUC (challenger's near-constant velocity features triggered BatchNorm
+saturation on production traffic). Tree-based champion was robust; MLP
+challenger wasn't. Retrained without velocity features → 100% agreement.
+The whole story is in
+[`docs/reports/phase4_shadow_ab_analysis.md`](docs/reports/phase4_shadow_ab_analysis.md).
 
 See [`docs/reports/phase2_model_comparison.md`](docs/reports/phase2_model_comparison.md)
 for the full Phase 2 writeup. Phase 3 inference contract:

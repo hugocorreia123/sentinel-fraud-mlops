@@ -20,8 +20,11 @@ import mlflow.lightgbm
 from loguru import logger
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-THRESHOLD_PATH = (
+CHAMPION_THRESHOLD_PATH = (
     PROJECT_ROOT / "models" / "champion" / "artifacts" / "threshold" / "threshold_sweep.json"
+)
+CHALLENGER_THRESHOLD_PATH = (
+    PROJECT_ROOT / "models" / "challenger" / "artifacts" / "threshold" / "threshold_sweep.json"
 )
 
 MLFLOW_URI = "http://127.0.0.1:5000"
@@ -72,12 +75,12 @@ def load_champion() -> LoadedModel:
 
     # Load tuned threshold; default to 0.5 if missing
     threshold = 0.5
-    if THRESHOLD_PATH.exists():
-        data = json.loads(THRESHOLD_PATH.read_text())
+    if CHAMPION_THRESHOLD_PATH.exists():
+        data = json.loads(CHAMPION_THRESHOLD_PATH.read_text())
         threshold = float(data["best"]["threshold"])
         logger.info(f"Loaded cost-aware threshold: {threshold:.4f}")
     else:
-        logger.warning(f"Threshold file not found at {THRESHOLD_PATH}; defaulting to 0.5")
+        logger.warning(f"Threshold file not found at {CHAMPION_THRESHOLD_PATH}; defaulting to 0.5")
 
     feature_names = list(booster.feature_name())
 
@@ -102,11 +105,12 @@ class LoadedChallenger:
     model: FraudMLP
     name: str
     version: str
-    feature_names: list[str]  # ordered numeric feature names (no one-hot type cols)
+    feature_names: list[str]
     scaler_mean: torch.Tensor
     scaler_std: torch.Tensor
     device: torch.device
     loaded_at: str
+    threshold: float
 
 
 def load_challenger() -> LoadedChallenger:
@@ -132,6 +136,18 @@ def load_challenger() -> LoadedChallenger:
     versions = client.search_model_versions("name='sentinel-challenger'")
     latest = max(versions, key=lambda v: int(v.version)) if versions else None
 
+    # Load challenger's tuned threshold; default to 0.5 if not yet tuned
+    threshold = 0.5
+    if CHALLENGER_THRESHOLD_PATH.exists():
+        data = json.loads(CHALLENGER_THRESHOLD_PATH.read_text())
+        threshold = float(data["best"]["threshold"])
+        logger.info(f"Loaded challenger threshold: {threshold:.4f}")
+    else:
+        logger.warning(
+            f"Challenger threshold file not found at {CHALLENGER_THRESHOLD_PATH}; "
+            "defaulting to 0.5"
+        )
+
     return LoadedChallenger(
         model=model,
         name="sentinel-challenger",
@@ -141,4 +157,5 @@ def load_challenger() -> LoadedChallenger:
         scaler_std=torch.from_numpy(blob["scaler_std"]).to(device),
         device=device,
         loaded_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        threshold=threshold,
     )

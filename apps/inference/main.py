@@ -282,9 +282,9 @@ def predict(tx: TransactionRequest) -> PredictionResponse:
         # Challenger (shadow-scored if loaded)
         challenger_proba = _challenger_score(tx, velocity)
         challenger_decision: str | None = None
-        if challenger_proba is not None:
+        if challenger_proba is not None and CHALLENGER is not None:
             challenger_decision = (
-                "BLOCK" if challenger_proba >= MODEL.threshold else "APPROVE"
+                "BLOCK" if challenger_proba >= CHALLENGER.threshold else "APPROVE"
             )
 
         # Decide whose answer to serve
@@ -327,10 +327,15 @@ def predict(tx: TransactionRequest) -> PredictionResponse:
         except Exception as e:
             logger.warning(f"Prediction log write failed: {e}")
 
+    served_threshold = (
+        CHALLENGER.threshold
+        if served_by == "challenger" and CHALLENGER is not None
+        else MODEL.threshold
+    )
     return PredictionResponse(
         decision=served_decision,
         fraud_probability=round(served_proba, 6),
-        threshold_used=MODEL.threshold,
+        threshold_used=served_threshold,
         model_name=served_model_name,
         model_version=served_model_version,
         latency_ms=latency_ms,

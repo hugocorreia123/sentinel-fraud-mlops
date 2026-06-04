@@ -35,7 +35,11 @@ REGISTERED_MODEL_NAME = "sentinel-challenger"
 
 TARGET = "isFraud"
 TYPE_COLS = ["type_CASH_IN", "type_CASH_OUT", "type_DEBIT", "type_PAYMENT", "type_TRANSFER"]
-EXCLUDE = {TARGET, "step", *TYPE_COLS}
+# Exclude velocity features: in PaySim training data they are nearly constant
+# (mean ~1.0, std ~0.03), so the scaler maps any production-time 0 to z ≈ -31,
+# saturating the BatchNorm + sigmoid. Trees handle this fine; MLPs don't.
+VELOCITY_COLS = {"velocity_count_1h", "velocity_count_6h", "velocity_count_24h"}
+EXCLUDE = {TARGET, "step", *TYPE_COLS, *VELOCITY_COLS}
 
 BATCH_SIZE = 4096
 LEARNING_RATE = 1e-3
