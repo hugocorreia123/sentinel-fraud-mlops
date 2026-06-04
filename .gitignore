@@ -261,3 +261,7 @@ mlflow.db
 mlflow.db-journal
 mlartifacts/
 data/predictions.db*
+
+# Evidently — keep only the latest report tracked
+monitoring/evidently/reports/drift_2*.html
+monitoring/evidently/reports/drift_2*.json

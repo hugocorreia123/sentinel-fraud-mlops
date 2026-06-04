@@ -1,0 +1,318 @@
+{
+  "metrics": [
+    {
+      "id": "15e89f895b482f9b84ba7274ed18a106",
+      "metric_name": "DriftedColumnsCount(drift_share=0.5)",
+      "config": {
+        "type": "evidently:metric_v2:DriftedColumnsCount",
+        "drift_share": 0.5
+      },
+      "value": {
+        "count": 2.0,
+        "share": 1.0
+      }
+    },
+    {
+      "id": "3fbadf4ef830ee712c8786bb533753db",
+      "metric_name": "ValueDrift(column=amount,method=Wasserstein distance (normed),threshold=0.1)",
+      "config": {
+        "type": "evidently:metric_v2:ValueDrift",
+        "column": "amount",
+        "method": "Wasserstein distance (normed)",
+        "threshold": 0.1
+      },
+      "value": 0.2215900162680467
+    },
+    {
+      "id": "e834a5706314680977ae48cb908f7d80",
+      "metric_name": "ValueDrift(column=log_amount,method=Wasserstein distance (normed),threshold=0.1)",
+      "config": {
+        "type": "evidently:metric_v2:ValueDrift",
+        "column": "log_amount",
+        "method": "Wasserstein distance (normed)",
+        "threshold": 0.1
+      },
+      "value": 1.6479322080817962
+    },
+    {
+      "id": "00404ffe284d7862baa4095093452630",
+      "metric_name": "RowCount()",
+      "config": {
+        "type": "evidently:metric_v2:RowCount"
+      },
+      "value": 69276.0
+    },
+    {
+      "id": "91e498263b6502661774b15eb39ea154",
+      "metric_name": "ColumnCount()",
+      "config": {
+        "type": "evidently:metric_v2:ColumnCount"
+      },
+      "value": 2.0
+    },
+    {
+      "id": "31b8c78bad2b7108842265cd082d5abf",
+      "metric_name": "ColumnCount(column_type=ColumnType.Numerical)",
+      "config": {
+        "type": "evidently:metric_v2:ColumnCount",
+        "tests": [],
+        "column_type": "ColumnType.Numerical"
+      },
+      "value": 2.0
+    },
+    {
+      "id": "bb154bb9a843cad0d72fa3dc4983394d",
+      "metric_name": "ColumnCount(column_type=ColumnType.Categorical)",
+      "config": {
+        "type": "evidently:metric_v2:ColumnCount",
+        "tests": [],
+        "column_type": "ColumnType.Categorical"
+      },
+      "value": 0.0
+    },
+    {
+      "id": "012cbfb269361272d4773e1a68559396",
+      "metric_name": "ColumnCount(column_type=ColumnType.Datetime)",
+      "config": {
+        "type": "evidently:metric_v2:ColumnCount",
+        "tests": [],
+        "column_type": "ColumnType.Datetime"
+      },
+      "value": 0.0
+    },
+    {
+      "id": "3f5e595e26bc8e120aadf51967bb0355",
+      "metric_name": "ColumnCount(column_type=ColumnType.Text)",
+      "config": {
+        "type": "evidently:metric_v2:ColumnCount",
+        "tests": [],
+        "column_type": "ColumnType.Text"
+      },
+      "value": 0.0
+    },
+    {
+      "id": "ff1caea5e148b287bd5348d4bb40eccf",
+      "metric_name": "DuplicatedRowCount()",
+      "config": {
+        "type": "evidently:metric_v2:DuplicatedRowCount"
+      },
+      "value": 3928.0
+    },
+    {
+      "id": "02fbcbd017b30a0b075d9d5a72ce2a32",
+      "metric_name": "DuplicatedColumnsCount()",
+      "config": {
+        "type": "evidently:metric_v2:DuplicatedColumnsCount"
+      },
+      "value": 0.0
+    },
+    {
+      "id": "4c2efb888b5c5f8afb50895b4b4abcec",
+      "metric_name": "AlmostDuplicatedColumnsCount()",
+      "config": {
+        "type": "evidently:metric_v2:AlmostDuplicatedColumnsCount"
+      },
+      "value": 0.0
+    },
+    {
+      "id": "9e9fa5ec57528fadbf97a35ad5b66838",
+      "metric_name": "AlmostConstantColumnsCount()",
+      "config": {
+        "type": "evidently:metric_v2:AlmostConstantColumnsCount"
+      },
+      "value": 0.0
+    },
+    {
+      "id": "c86e32eba7f3826051b804c0df7a97fe",
+      "metric_name": "EmptyRowsCount()",
+      "config": {
+        "type": "evidently:metric_v2:EmptyRowsCount"
+      },
+      "value": 0.0
+    },
+    {
+      "id": "ce527bc2e35349e7f7a2e047a57f85ca",
+      "metric_name": "EmptyColumnsCount()",
+      "config": {
+        "type": "evidently:metric_v2:EmptyColumnsCount"
+      },
+      "value": 0.0
+    },
+    {
+      "id": "5f958296980b95bddb41264800ab7a93",
+      "metric_name": "ConstantColumnsCount()",
+      "config": {
+        "type": "evidently:metric_v2:ConstantColumnsCount"
+      },
+      "value": 0.0
+    },
+    {
+      "id": "89b8d715e93a15e3acbc483410aff2f4",
+      "metric_name": "DatasetMissingValueCount()",
+      "config": {
+        "type": "evidently:metric_v2:DatasetMissingValueCount"
+      },
+      "value": {
+        "count": 0.0,
+        "share": 0.0
+      }
+    },
+    {
+      "id": "fa67ac35f698fc92133557d6117103b9",
+      "metric_name": "MissingValueCount(column=amount)",
+      "config": {
+        "type": "evidently:metric_v2:MissingValueCount",
+        "column": "amount"
+      },
+      "value": {
+        "count": 0.0,
+        "share": 0.0
+      }
+    },
+    {
+      "id": "04bb46203712cf246b5eb6f561e8e0ca",
+      "metric_name": "MinValue(column=amount)",
+      "config": {
+        "type": "evidently:metric_v2:MinValue",
+        "column": "amount"
+      },
+      "value": 5.16
+    },
+    {
+      "id": "9acf53e9e9a3bccf0f05d3a9569edc68",
+      "metric_name": "MaxValue(column=amount)",
+      "config": {
+        "type": "evidently:metric_v2:MaxValue",
+        "column": "amount"
+      },
+      "value": 999254.97
+    },
+    {
+      "id": "5b61f961e9a05ae6d8aeb5da01469059",
+      "metric_name": "MeanValue(column=amount)",
+      "config": {
+        "type": "evidently:metric_v2:MeanValue",
+        "column": "amount"
+      },
+      "value": 27367.936433396848
+    },
+    {
+      "id": "9b2a3f7b9e75da1ae617107e910f59c7",
+      "metric_name": "StdValue(column=amount)",
+      "config": {
+        "type": "evidently:metric_v2:StdValue",
+        "column": "amount"
+      },
+      "value": 125793.10745691706
+    },
+    {
+      "id": "a3c77d1ee8e66ac44b73808588ea8ca5",
+      "metric_name": "QuantileValue(column=amount,quantile=0.25)",
+      "config": {
+        "type": "evidently:metric_v2:QuantileValue",
+        "column": "amount",
+        "quantile": 0.25
+      },
+      "value": 1340.0674999999999
+    },
+    {
+      "id": "f4c021d1db89c27599bf1e8d196f924e",
+      "metric_name": "QuantileValue(column=amount,quantile=0.5)",
+      "config": {
+        "type": "evidently:metric_v2:QuantileValue",
+        "column": "amount",
+        "quantile": 0.5
+      },
+      "value": 2712.495
+    },
+    {
+      "id": "8b374156e73fe3a66ff7b122d301f017",
+      "metric_name": "QuantileValue(column=amount,quantile=0.75)",
+      "config": {
+        "type": "evidently:metric_v2:QuantileValue",
+        "column": "amount",
+        "quantile": 0.75
+      },
+      "value": 4049.905
+    },
+    {
+      "id": "16d6c7b5bd811a6655b1f1efc3a3d08f",
+      "metric_name": "MissingValueCount(column=log_amount)",
+      "config": {
+        "type": "evidently:metric_v2:MissingValueCount",
+        "column": "log_amount"
+      },
+      "value": {
+        "count": 0.0,
+        "share": 0.0
+      }
+    },
+    {
+      "id": "c34ae1d1ebce0dfd2464fc582aff8995",
+      "metric_name": "MinValue(column=log_amount)",
+      "config": {
+        "type": "evidently:metric_v2:MinValue",
+        "column": "log_amount"
+      },
+      "value": 1.8180767775454285
+    },
+    {
+      "id": "995ab06e6dc35927ee5c88d20bdad2c5",
+      "metric_name": "MaxValue(column=log_amount)",
+      "config": {
+        "type": "evidently:metric_v2:MaxValue",
+        "column": "log_amount"
+      },
+      "value": 13.814766251036584
+    },
+    {
+      "id": "c811d292b83f2dd2fde1d88c8e854844",
+      "metric_name": "MeanValue(column=log_amount)",
+      "config": {
+        "type": "evidently:metric_v2:MeanValue",
+        "column": "log_amount"
+      },
+      "value": 7.817160113494694
+    },
+    {
+      "id": "48d81ce1e6537b6c89a9bb2f5c7a5db6",
+      "metric_name": "StdValue(column=log_amount)",
+      "config": {
+        "type": "evidently:metric_v2:StdValue",
+        "column": "log_amount"
+      },
+      "value": 1.5169538501072781
+    },
+    {
+      "id": "7f8349d2fc5292200d205ed21ea3c7e2",
+      "metric_name": "QuantileValue(column=log_amount,quantile=0.25)",
+      "config": {
+        "type": "evidently:metric_v2:QuantileValue",
+        "column": "log_amount",
+        "quantile": 0.25
+      },
+      "value": 7.2012212175801436
+    },
+    {
+      "id": "3ab8e16fac1ac38d64a6a96d872666b6",
+      "metric_name": "QuantileValue(column=log_amount,quantile=0.5)",
+      "config": {
+        "type": "evidently:metric_v2:QuantileValue",
+        "column": "log_amount",
+        "quantile": 0.5
+      },
+      "value": 7.905992750779918
+    },
+    {
+      "id": "466bece36a5be1250c2902e5b3b19f05",
+      "metric_name": "QuantileValue(column=log_amount,quantile=0.75)",
+      "config": {
+        "type": "evidently:metric_v2:QuantileValue",
+        "column": "log_amount",
+        "quantile": 0.75
+      },
+      "value": 8.306695591925672
+    }
+  ],
+  "tests": []
+}
