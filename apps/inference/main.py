@@ -125,7 +125,7 @@ def health() -> HealthResponse:
         except Exception:
             redis_ok = False
 
-    status = "ok" if (MODEL is not None and redis_ok) else "degraded"
+    status = "ok" if MODEL is not None else "down"
     if MODEL is None:
         status = "down"
 
