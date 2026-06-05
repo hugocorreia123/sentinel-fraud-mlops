@@ -40,7 +40,7 @@ The wow is not in any single piece — it's that all of them are present, integr
 
 ---
 
-### Results so far (Phases 1–4)
+### Results so far (Phases 1–5)
 
 **Modelling (Phases 1 & 2)** — Two production models trained, tracked in MLflow,
 and registered. Same 25-feature pipeline, three different learning paradigms:
@@ -88,6 +88,25 @@ See [`docs/reports/phase2_model_comparison.md`](docs/reports/phase2_model_compar
 for the full Phase 2 writeup. Phase 3 inference contract:
 [`apps/inference/schemas.py`](apps/inference/schemas.py).
 
+**Monitoring stack (Phase 5)** — Prometheus scrapes the inference service's
+`/metrics` endpoint every 5 seconds; Grafana dashboards visualize throughput,
+latency percentiles, decision rates, fraud probability distribution, and service
+health. Evidently generates HTML drift reports comparing live traffic against the
+training reference. Six Prometheus alert rules cover SLO (latency, traffic),
+quality (block rate, score saturation), and availability (model loaded, Redis
+reachable).
+
+![Grafana dashboard](docs/screenshots/grafana-dashboard.png)
+
+| Capability | Tool | Where |
+|---|---|---|
+| Live operational metrics (5s scrape) | Prometheus + Grafana | `monitoring/prometheus`, `monitoring/grafana` |
+| Statistical drift detection | Evidently (Wasserstein) | `monitoring/evidently/generate_drift_report.py` |
+| Alert rules (6) | Prometheus | `monitoring/prometheus/alerts.yml` |
+| One-command stack | docker-compose | `docker-compose.yml` |
+
+Full Phase 5 writeup, including the Evidently and Prometheus alert
+screenshots: [`docs/reports/phase5_monitoring.md`](docs/reports/phase5_monitoring.md).
 ---
 
 ## 🛠️ Stack
