@@ -126,8 +126,6 @@ def health() -> HealthResponse:
             redis_ok = False
 
     status = "ok" if MODEL is not None else "down"
-    if MODEL is None:
-        status = "down"
 
     return HealthResponse(
         status=status,
