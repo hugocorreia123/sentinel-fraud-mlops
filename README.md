@@ -1,3 +1,15 @@
+---
+title: Sentinel Fraud Detection
+emoji: 🛡️
+colorFrom: indigo
+colorTo: red
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+short_description: Real-time fraud detection — champion/challenger ML inference
+---
+
 # Sentinel — Real-time Fraud Detection MLOps
 
 > Production-shape ML system: champion/challenger ensemble serving fraud predictions at sub-100ms p99 latency, with full observability, drift detection, adversarial robustness evaluation, and a Streamlit control panel.
