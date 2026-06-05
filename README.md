@@ -40,7 +40,7 @@ The wow is not in any single piece — it's that all of them are present, integr
 
 ---
 
-### Results so far (Phases 1–5)
+### Results so far (Phases 1–6)
 
 **Modelling (Phases 1 & 2)** — Two production models trained, tracked in MLflow,
 and registered. Same 25-feature pipeline, three different learning paradigms:
@@ -107,6 +107,15 @@ reachable).
 
 Full Phase 5 writeup, including the Evidently and Prometheus alert
 screenshots: [`docs/reports/phase5_monitoring.md`](docs/reports/phase5_monitoring.md).
+
+**Robustness + load (Phase 6)** — Adversarial robustness via FGSM with
+attacker-realistic feature constraints (only `amount` and ratios are
+attacker-controllable); both models remain ≥90% fraud-detection across ε up
+to 1.0. Sustained 10-minute load test: **510,968 requests, 0 failures, p99
+140ms, memory flat at 282 MB**. Step-load to failure finds the
+single-worker uvicorn ceiling at ~1,500 RPS.
+
+See [`docs/reports/phase6_robustness_and_load.md`](docs/reports/phase6_robustness_and_load.md) for the full writeup.
 
 ---
 
