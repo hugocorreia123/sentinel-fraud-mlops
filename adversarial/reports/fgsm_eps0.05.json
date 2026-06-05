@@ -1,0 +1,38 @@
+{
+  "n_samples": 100,
+  "epsilon_std_space": 0.05,
+  "perturbation_l2_std_mean": 0.19364917278289795,
+  "per_feature_max_abs_raw": {
+    "amount": 31102.5,
+    "oldbalanceOrg": 145678.0,
+    "newbalanceOrig": 147508.0,
+    "oldbalanceDest": 141727.0,
+    "newbalanceDest": 160401.0,
+    "log_amount": 0.09117603302001953,
+    "orig_balance_delta": 6489.0,
+    "dest_balance_delta": 43972.5,
+    "balance_mismatch": 0.020147085189819336,
+    "drained_to_zero": 0.02121758460998535,
+    "dest_was_empty": 0.024699687957763672,
+    "amount_to_balance_ratio": 163.54632568359375,
+    "dest_is_merchant": 0.023645222187042236,
+    "rolling_mean_amount": 31099.5,
+    "amount_vs_rolling_mean": 0.0011186599731445312
+  },
+  "champion": {
+    "threshold": 0.999,
+    "baseline_detected": 100,
+    "post_attack_detected": 0,
+    "flipped": 100,
+    "attack_success_rate": 1.0,
+    "note": "Perturbation was optimized against challenger; champion just receives the perturbed inputs"
+  },
+  "challenger": {
+    "threshold": 0.999,
+    "baseline_detected": 99,
+    "post_attack_detected": 99,
+    "flipped": 0,
+    "attack_success_rate": 0.0,
+    "note": "FGSM optimized against this model"
+  }
+}
