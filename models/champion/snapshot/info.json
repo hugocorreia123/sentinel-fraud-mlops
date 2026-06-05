@@ -1,0 +1,5 @@
+{
+  "name": "sentinel-champion",
+  "version": "2",
+  "framework": "lightgbm"
+}

@@ -5,6 +5,7 @@ the artifacts directory. Holds them in process memory; no per-request loading.
 """
 from __future__ import annotations
 
+import os
 import tempfile
 
 from mlflow.artifacts import download_artifacts
@@ -30,6 +31,10 @@ CHALLENGER_THRESHOLD_PATH = (
 MLFLOW_URI = "http://127.0.0.1:5000"
 REGISTERED_MODEL_NAME = "sentinel-champion"
 
+MODEL_SOURCE = os.environ.get("MODEL_SOURCE", "mlflow")  # "mlflow" or "local"
+CHAMPION_SNAPSHOT_DIR = PROJECT_ROOT / "models" / "champion" / "snapshot"
+CHALLENGER_SNAPSHOT_DIR = PROJECT_ROOT / "models" / "challenger" / "snapshot"
+
 
 @dataclass
 class LoadedModel:
@@ -43,8 +48,50 @@ class LoadedModel:
     loaded_at: str  # ISO timestamp
 
 
+def _load_champion_from_disk() -> LoadedModel:
+    """Load champion from the local snapshot bundle (no MLflow needed)."""
+    booster_path = CHAMPION_SNAPSHOT_DIR / "model.lgb"
+    threshold_path = CHAMPION_SNAPSHOT_DIR / "threshold.json"
+    info_path = CHAMPION_SNAPSHOT_DIR / "info.json"
+
+    if not booster_path.exists():
+        raise FileNotFoundError(
+            f"Champion snapshot not found at {booster_path}. "
+            "Run `uv run python -m scripts.snapshot_models` first."
+        )
+
+    logger.info(f"Loading champion from local snapshot: {booster_path}")
+    booster: lgb.Booster = lgb.Booster(
+        model_file=str(booster_path),
+        params={"num_threads": 1, "predict_disable_shape_check": True},
+    )
+
+    threshold = 0.5
+    if threshold_path.exists():
+        data = json.loads(threshold_path.read_text())
+        threshold = float(data["best"]["threshold"])
+        logger.info(f"Loaded champion threshold from snapshot: {threshold:.4f}")
+
+    info: dict = {}
+    if info_path.exists():
+        info = json.loads(info_path.read_text())
+
+    feature_names = list(booster.feature_name())
+    return LoadedModel(
+        booster=booster,
+        name=info.get("name", "sentinel-champion"),
+        version=str(info.get("version", "local")),
+        stage="local",
+        feature_names=feature_names,
+        n_features=len(feature_names),
+        threshold=threshold,
+        loaded_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    )
+
 def load_champion() -> LoadedModel:
     """Pull the latest registered champion + its tuned threshold."""
+    if MODEL_SOURCE == "local":
+        return _load_champion_from_disk()
     mlflow.set_tracking_uri(MLFLOW_URI)
 
     model_uri = f"models:/{REGISTERED_MODEL_NAME}/latest"
@@ -112,9 +159,51 @@ class LoadedChallenger:
     loaded_at: str
     threshold: float
 
+def _load_challenger_from_disk() -> LoadedChallenger:
+    """Load challenger from the local snapshot bundle (no MLflow needed)."""
+    pt_path = CHALLENGER_SNAPSHOT_DIR / "model.pt"
+    threshold_path = CHALLENGER_SNAPSHOT_DIR / "threshold.json"
+    info_path = CHALLENGER_SNAPSHOT_DIR / "info.json"
+
+    if not pt_path.exists():
+        raise FileNotFoundError(
+            f"Challenger snapshot not found at {pt_path}. "
+            "Run `uv run python -m scripts.snapshot_models` first."
+        )
+
+    device = torch.device("cpu")
+    blob = torch.load(pt_path, map_location=device, weights_only=False)
+    numeric_cols: list[str] = blob["numeric_cols"]
+    model = FraudMLP(n_numeric_features=len(numeric_cols)).to(device)
+    model.load_state_dict(blob["state_dict"])
+    model.eval()
+
+    threshold = 0.5
+    if threshold_path.exists():
+        data = json.loads(threshold_path.read_text())
+        threshold = float(data["best"]["threshold"])
+        logger.info(f"Loaded challenger threshold from snapshot: {threshold:.4f}")
+
+    info: dict = {}
+    if info_path.exists():
+        info = json.loads(info_path.read_text())
+
+    return LoadedChallenger(
+        model=model,
+        name=info.get("name", "sentinel-challenger"),
+        version=str(info.get("version", "local")),
+        feature_names=numeric_cols,
+        scaler_mean=torch.from_numpy(blob["scaler_mean"]).to(device),
+        scaler_std=torch.from_numpy(blob["scaler_std"]).to(device),
+        device=device,
+        loaded_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        threshold=threshold,
+    )
 
 def load_challenger() -> LoadedChallenger:
     """Load the challenger from the saved torch artifact + scaler."""
+    if MODEL_SOURCE == "local":
+        return _load_challenger_from_disk()
     artifact_path = PROJECT_ROOT / "models" / "challenger" / "artifacts" / "model.pt"
     if not artifact_path.exists():
         raise FileNotFoundError(

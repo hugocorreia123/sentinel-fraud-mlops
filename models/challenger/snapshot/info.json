@@ -1,0 +1,5 @@
+{
+  "name": "sentinel-challenger",
+  "version": "3",
+  "framework": "pytorch"
+}
