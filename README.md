@@ -32,7 +32,7 @@ Most ML portfolios stop at training a model. Sentinel is built around the *syste
 | **Threshold** | Default 0.5 | Cost-asymmetric threshold (missed fraud costs 100× a false positive) |
 | **Serving** | Predict in a notebook | FastAPI service with Redis feature store, p99 < 100ms verified |
 | **Deployment** | "Save to pickle" | Shadow-mode challenger, A/B routing, MLflow registry |
-| **Monitoring** | None | Prometheus + Grafana + Evidently drift detection, alerts |
+| **Monitoring** | Prometheus · Grafana · Evidently (drift) · Alertmanager |
 | **Robustness** | None | Adversarial robustness eval (gradient-based feature perturbations) |
 | **Load** | Run once | Locust stress test at 800+ RPS, p99 < 100ms held |
 
@@ -130,7 +130,6 @@ See [`docs/reports/phase6_robustness_and_load.md`](docs/reports/phase6_robustnes
 | **Feature store** | Redis (velocity features with sliding-window TTL) |
 | **Monitoring** | Prometheus · Grafana · Evidently (drift) · Alertmanager |
 | **Testing** | pytest · Locust (load) · custom adversarial harness |
-| **Demo UI** | Streamlit + Plotly |
 | **Infra** | Docker Compose · Hugging Face Spaces (free hosting) |
 | **Tooling** | uv (Python package manager) · ruff · mypy |
 
@@ -146,8 +145,15 @@ cd sentinel-fraud-mlops
 # Install (uv handles venv + pinned deps)
 uv sync --all-groups
 
-# Download the IEEE-CIS dataset (~500 MB)
-uv run python scripts/download_data.py
+# PaySim is available at https://www.kaggle.com/datasets/ealaxi/paysim1
+# Place paysim.csv (~470MB) in data/raw/ before running the next step.
+
+# Build train/val/holdout splits + engineered features
+uv run python -m data_pipeline.features.build
+
+# Train both models, log to MLflow
+uv run python -m models.champion.train
+uv run python -m models.challenger.train
 
 # Train both models, log to MLflow
 uv run python -m models.champion.train
@@ -164,7 +170,6 @@ curl -X POST http://localhost:8000/predict \
 # Open the dashboards
 open http://localhost:3000   # Grafana — fraud monitoring
 open http://localhost:5000   # MLflow — experiment tracking
-open http://localhost:8501   # Streamlit — control panel
 ```
 
 ---
