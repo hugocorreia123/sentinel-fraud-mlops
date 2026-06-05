@@ -1,0 +1,38 @@
+# Dataset (470MB — never goes in the container)
+data/raw/
+data/processed/
+data/predictions.db*
+
+# MLflow tracking data
+mlflow.db
+mlartifacts/
+mlruns/
+
+# Training artifacts not needed at inference
+models/baseline/
+models/champion/artifacts/
+models/challenger/artifacts/
+
+# Dev tooling
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Git
+.git/
+.github/
+
+# Local docs (the README is plenty for Spaces)
+docs/
+notebooks/
+
+# Phase work that doesn't run on Spaces
+load_testing/
+adversarial/
+monitoring/
+
+# OS files
+.DS_Store

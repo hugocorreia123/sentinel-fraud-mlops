@@ -7,18 +7,21 @@ from __future__ import annotations
 
 import os
 import tempfile
-
-from mlflow.artifacts import download_artifacts
-
-import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+import json
 import lightgbm as lgb
-import mlflow
-import mlflow.lightgbm
 from loguru import logger
+
+MODEL_SOURCE = os.environ.get("MODEL_SOURCE", "mlflow")
+
+# Only import MLflow if we actually need it
+if MODEL_SOURCE == "mlflow":
+    import mlflow
+    import mlflow.lightgbm
+    from mlflow.artifacts import download_artifacts
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CHAMPION_THRESHOLD_PATH = (
@@ -31,7 +34,6 @@ CHALLENGER_THRESHOLD_PATH = (
 MLFLOW_URI = "http://127.0.0.1:5000"
 REGISTERED_MODEL_NAME = "sentinel-champion"
 
-MODEL_SOURCE = os.environ.get("MODEL_SOURCE", "mlflow")  # "mlflow" or "local"
 CHAMPION_SNAPSHOT_DIR = PROJECT_ROOT / "models" / "champion" / "snapshot"
 CHALLENGER_SNAPSHOT_DIR = PROJECT_ROOT / "models" / "challenger" / "snapshot"
 
