@@ -187,30 +187,37 @@ open http://localhost:5000   # MLflow — experiment tracking
 ```
 sentinel-fraud-mlops/
 ├── apps/
-│   ├── inference/          # FastAPI inference service
+│   ├── inference/          # FastAPI inference service (champion + challenger routing)
 │   └── control_panel/      # Streamlit demo UI (deployed to HF Spaces)
 ├── data_pipeline/
-│   ├── ingestion/          # IEEE-CIS loader + synthetic stream generator
-│   └── features/           # Feature engineering (velocity, time-decay, graph)
+│   ├── ingestion/          # PaySim loader + train/val/holdout splits
+│   └── features/           # Feature engineering (balance deltas, ratios, velocity)
 ├── models/
-│   ├── champion/           # LightGBM training pipeline + cost-aware threshold
-│   └── challenger/         # PyTorch tabular NN training pipeline
-├── feature_store/          # Redis-backed online feature lookups
+│   ├── baseline/           # Default-hyperparameter LightGBM (Phase 1 sanity check)
+│   ├── champion/           # LightGBM + Optuna training + cost-aware threshold
+│   ├── challenger/         # PyTorch tabular NN training + threshold
+│   └── threshold.py        # Shared cost-aware threshold sweep
+├── feature_store/          # Redis-backed online feature lookups + populate scripts
 ├── monitoring/
-│   ├── prometheus/         # Scrape configs + alert rules
-│   ├── grafana/            # Dashboards as JSON
-│   └── evidently/          # Drift detection scripts
-├── adversarial/            # Gradient-based feature perturbation eval
-├── load_testing/           # Locust scripts for throughput / latency tests
-├── notebooks/              # Exploratory notebooks (not part of prod path)
-├── scripts/                # CLI utilities
-├── tests/                  # pytest unit + integration tests
-├── configs/                # YAML configs for models, monitoring, thresholds
+│   ├── prometheus/         # Scrape configs + 6 alert rules
+│   ├── grafana/            # Dashboard JSON (7 panels)
+│   └── evidently/          # Wasserstein drift report generator
+├── adversarial/            # FGSM robustness sweep with attacker-realistic constraints
+├── load_testing/           # Locust scripts (smoke / sustained / step-load to failure)
+├── notebooks/              # Exploratory notebooks (not part of the prod path)
+├── scripts/                # CLI utilities, including snapshot_models.py for HF deploy
+├── configs/                # YAML configs
+├── tests/                  # pytest tests
 ├── docs/
-│   ├── architecture/       # Mermaid + PNG
+│   ├── architecture/       # Mermaid sources
 │   ├── screenshots/        # Live dashboard captures
-│   └── reports/            # Evaluation reports (PR-AUC, drift, adversarial, load)
-├── docker-compose.yml      # Full stack: inference + Redis + Prometheus + Grafana + MLflow
+│   ├── reports/            # Phase reports (Phase 2 model comparison, Phase 4 bug story, Phase 5 monitoring, Phase 6 robustness)
+│   └── brief/              # Word docs: project brief, demo walkthrough, cross-project runbook
+├── docker-compose.yml      # Local stack: Redis + Prometheus + Grafana
+├── Dockerfile              # HF Spaces deployment (single-container, models from disk)
+├── Dockerfile.hf           # Same content as Dockerfile; kept for documentation
+├── supervisord.conf        # Runs FastAPI + Streamlit inside the HF container
+├── .dockerignore           # Excludes data, MLflow state, training artifacts
 ├── pyproject.toml          # uv-managed dependencies
 └── README.md
 ```
