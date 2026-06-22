@@ -224,10 +224,6 @@ sentinel-fraud-mlops/
 
 ---
 
-**Project brief (one-page Word doc):** [`docs/brief/Sentinel_Project_Brief.docx`](docs/brief/Sentinel_Project_Brief.docx)
-
----
-
 ## 📜 License
 
 MIT — see [`LICENSE`](LICENSE).
