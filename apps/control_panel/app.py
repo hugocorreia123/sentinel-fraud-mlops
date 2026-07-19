@@ -25,6 +25,14 @@ st.set_page_config(
     layout="wide",
 )
 
+import sentinel_theme as th
+th.inject()
+
+import sentinel_friendly as sf
+
+if not sf.show_welcome():
+    st.stop()
+
 
 # ---------- Helpers ----------------------------------------------------------
 def api_get(path: str, timeout: float = 5.0) -> dict[str, Any] | None:
@@ -85,14 +93,23 @@ if health:
     st.sidebar.success("✅ Inference service reachable")
 else:
     st.sidebar.error("❌ Inference service unreachable")
+    sf.show_api_down_caveat()
 st.sidebar.markdown("---")
 st.sidebar.markdown(
     "[GitHub repo](https://github.com/hugocorreia123/sentinel-fraud-mlops)"
 )
 
 # ---------- Tabs -------------------------------------------------------------
-tab_score, tab_system, tab_about = st.tabs(
-    ["🎯 Score a transaction", "📊 Live system state", "ℹ️ About"]
+th.hero(
+    "Real-time Fraud MLOps",
+    "Sentinel",
+    "A champion model decides every transaction in under 100 ms while a "
+    "challenger shadows the same traffic. Approve or block — with the "
+    "model, version and latency behind each call.",
+    "PaySim synthetic mobile-money · production-shape by design",
+)
+tab_score, tab_system, tab_about, tab_help = st.tabs(
+    ["🎯 Score a transaction", "📊 Live system state", "ℹ️ About", "❓ Help"]
 )
 
 # === TAB 1 — score a transaction =============================================
@@ -245,6 +262,7 @@ with tab_system:
 # === TAB 3 — about ===========================================================
 with tab_about:
     st.header("About Sentinel")
+    sf.show_how_it_works()
     st.markdown(
         """
 **Sentinel** is a production-shape ML system for real-time fraud detection,
@@ -274,3 +292,7 @@ Components that exist locally but are **not** in this hosted demo:
 **Author:** Hugo Correia · Data Scientist / ML Engineer · Lisbon
 """
     )
+
+# === TAB 4 — help ============================================================
+with tab_help:
+    sf.show_help()
