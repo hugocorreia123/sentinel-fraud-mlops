@@ -10,6 +10,8 @@ license: mit
 short_description: Real-time fraud detection — champion/challenger ML inference
 ---
 
+**[Live demo](https://huggingface.co/spaces/hugocorreia123/sentinel-fraud-mlops)** — score a transaction against the champion model in real time: fill the form or click a ready-made example, and get the decision with the probability, threshold, latency and model version behind it. Guided tour and plain-language explanations built in.
+
 # Sentinel — Real-time Fraud Detection MLOps
 
 > Production-shape ML system: champion/challenger ensemble serving fraud predictions at sub-100ms p99 latency, with full observability, drift detection, adversarial robustness evaluation, and a Streamlit control panel.
