@@ -116,9 +116,10 @@ tab_score, tab_system, tab_about, tab_help = st.tabs(
 with tab_score:
     st.header("Score a transaction")
     st.caption(
-        "Fill in a PaySim-shape transaction and Sentinel will score it with "
-        "the champion model. The challenger runs in shadow per the "
-        "`CHALLENGER_TRAFFIC_PCT` routing."
+        "Fill in a transaction — or click a preset below — and the "
+        "champion model decides in real time. A challenger model scores "
+        "the same call silently in shadow; its answers are compared, "
+        "never served."
     )
 
     col1, col2 = st.columns(2)
@@ -193,6 +194,11 @@ with tab_score:
             m2.metric("Threshold", f"{threshold:.4f}")
             m3.metric("Latency", f"{latency_ms:.1f} ms")
             m4.metric("Model", f"{model_name} v{model_version}")
+            st.caption(f"**Means:** the model puts a {proba:.2%} chance "
+                       f"this is fraud; anything above {threshold:.4f} "
+                       f"gets blocked — a cutoff chosen by cost, not by "
+                       f"default. Decided in {latency_ms:.1f} ms by "
+                       f"{model_name} v{model_version}.")
             st.caption(f"Request ID: `{request_id}` — features used: {result.get('features_used', 'n/a')}")
 
             with st.expander("Request payload"):
