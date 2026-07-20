@@ -142,13 +142,27 @@ with tab_score:
         old_dest = st.number_input("Destination old balance (€)", min_value=0.0, value=0.0)
         new_dest = st.number_input("Destination new balance (€)", min_value=0.0, value=5000.0)
 
-    st.markdown("**Presets:**")
+    st.markdown("**Ready-made examples**")
+    st.caption("One click fills the whole form above with a complete "
+               "example — pick **one**, then press **Score transaction**. "
+               "Nothing is scored until you press the button, and you can "
+               "still edit any field first.")
     p1, p2, p3 = st.columns(3)
-    if p1.button("💸 Drain-to-zero fraud (TRANSFER)", use_container_width=True):
+    if p1.button("💸 Classic fraud — account drained to zero",
+                 use_container_width=True,
+                 help="A transfer that empties the sender's account in one "
+                      "move — the signature PaySim fraud pattern. Expect "
+                      "the model to BLOCK it."):
         st.session_state["preset"] = "fraud"
-    if p2.button("🛍️ Normal PAYMENT", use_container_width=True):
+    if p2.button("🛍️ Everyday purchase — small payment",
+                 use_container_width=True,
+                 help="A €50 payment from a healthy balance — ordinary "
+                      "behaviour. Expect an instant APPROVE."):
         st.session_state["preset"] = "payment"
-    if p3.button("🏦 Normal CASH_OUT", use_container_width=True):
+    if p3.button("🏧 Everyday cash withdrawal",
+                 use_container_width=True,
+                 help="A routine €3,000 cash-out that leaves money in the "
+                      "account — normal behaviour. Expect an APPROVE."):
         st.session_state["preset"] = "cashout"
 
     if st.session_state.get("preset") == "fraud":
