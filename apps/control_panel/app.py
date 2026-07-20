@@ -122,6 +122,13 @@ with tab_score:
         "never served."
     )
 
+    _FORM_DEFAULTS = {
+        "f_type": "PAYMENT", "f_amount": 5000.0, "f_old_org": 5000.0,
+        "f_new_org": 0.0, "f_old_dest": 0.0, "f_new_dest": 5000.0,
+    }
+    for _k, _v in _FORM_DEFAULTS.items():
+        st.session_state.setdefault(_k, _v)
+
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Transaction")
@@ -129,48 +136,70 @@ with tab_score:
             "Type",
             ["PAYMENT", "TRANSFER", "CASH_OUT", "CASH_IN", "DEBIT"],
             help="PaySim transaction type",
+            key="f_type",
         )
-        amount = st.number_input("Amount (€)", min_value=0.0, value=5000.0, step=100.0)
+        amount = st.number_input("Amount (€)", min_value=0.0, step=100.0,
+                                 key="f_amount")
         step = st.number_input("Step (hour since simulation start)", min_value=1, value=400, step=1)
 
     with col2:
         st.subheader("Accounts")
         name_orig = st.text_input("Originator account (e.g. C123456789)", value="C111111111")
-        old_org = st.number_input("Originator old balance (€)", min_value=0.0, value=5000.0)
-        new_org = st.number_input("Originator new balance (€)", min_value=0.0, value=0.0)
+        old_org = st.number_input("Originator old balance (€)", min_value=0.0, key="f_old_org")
+        new_org = st.number_input("Originator new balance (€)", min_value=0.0, key="f_new_org")
         name_dest = st.text_input("Destination account (e.g. C987654321)", value="C999999999")
-        old_dest = st.number_input("Destination old balance (€)", min_value=0.0, value=0.0)
-        new_dest = st.number_input("Destination new balance (€)", min_value=0.0, value=5000.0)
+        old_dest = st.number_input("Destination old balance (€)", min_value=0.0, key="f_old_dest")
+        new_dest = st.number_input("Destination new balance (€)", min_value=0.0, key="f_new_dest")
 
     st.markdown("**Ready-made examples**")
     st.caption("One click fills the whole form above with a complete "
-               "example — pick **one**, then press **Score transaction**. "
-               "Nothing is scored until you press the button, and you can "
-               "still edit any field first.")
-    p1, p2, p3 = st.columns(3)
-    if p1.button("💸 Classic fraud — account drained to zero",
-                 use_container_width=True,
-                 help="A transfer that empties the sender's account in one "
-                      "move — the signature PaySim fraud pattern. Expect "
-                      "the model to BLOCK it."):
-        st.session_state["preset"] = "fraud"
-    if p2.button("🛍️ Everyday purchase — small payment",
-                 use_container_width=True,
-                 help="A €50 payment from a healthy balance — ordinary "
-                      "behaviour. Expect an instant APPROVE."):
-        st.session_state["preset"] = "payment"
-    if p3.button("🏧 Everyday cash withdrawal",
-                 use_container_width=True,
-                 help="A routine €3,000 cash-out that leaves money in the "
-                      "account — normal behaviour. Expect an APPROVE."):
-        st.session_state["preset"] = "cashout"
+               "example — the chosen one stays highlighted. Edit any "
+               "field if you like, then press **Score transaction**. "
+               "Nothing is scored until you press it.")
 
-    if st.session_state.get("preset") == "fraud":
-        tx_type, amount, old_org, new_org, old_dest, new_dest = "TRANSFER", 250000.0, 250000.0, 0.0, 0.0, 0.0
-    elif st.session_state.get("preset") == "payment":
-        tx_type, amount, old_org, new_org, old_dest, new_dest = "PAYMENT", 50.0, 1000.0, 950.0, 0.0, 0.0
-    elif st.session_state.get("preset") == "cashout":
-        tx_type, amount, old_org, new_org, old_dest, new_dest = "CASH_OUT", 3000.0, 5000.0, 2000.0, 1000.0, 4000.0
+    _PRESETS = {
+        "fraud": dict(
+            label="💸 Classic fraud — account drained to zero",
+            help="A transfer that empties the sender's account in one "
+                 "move — the signature PaySim fraud pattern. Expect the "
+                 "model to BLOCK it.",
+            values=dict(f_type="TRANSFER", f_amount=250000.0,
+                        f_old_org=250000.0, f_new_org=0.0,
+                        f_old_dest=0.0, f_new_dest=0.0),
+        ),
+        "payment": dict(
+            label="🛍️ Everyday purchase — small payment",
+            help="A €50 payment from a healthy balance — ordinary "
+                 "behaviour. Expect an instant APPROVE.",
+            values=dict(f_type="PAYMENT", f_amount=50.0,
+                        f_old_org=1000.0, f_new_org=950.0,
+                        f_old_dest=0.0, f_new_dest=0.0),
+        ),
+        "cashout": dict(
+            label="🏧 Everyday cash withdrawal",
+            help="A routine €3,000 cash-out that leaves money in the "
+                 "account — normal behaviour. Expect an APPROVE.",
+            values=dict(f_type="CASH_OUT", f_amount=3000.0,
+                        f_old_org=5000.0, f_new_org=2000.0,
+                        f_old_dest=1000.0, f_new_dest=4000.0),
+        ),
+    }
+
+    def _load_preset(name: str) -> None:
+        st.session_state["preset"] = name
+        st.session_state.update(_PRESETS[name]["values"])
+
+    _sel = st.session_state.get("preset")
+    for _col, (_name, _p) in zip(st.columns(3), _PRESETS.items()):
+        _on = _sel == _name
+        _col.button(("✓ " if _on else "") + _p["label"],
+                    use_container_width=True,
+                    type="primary" if _on else "secondary",
+                    help=_p["help"],
+                    on_click=_load_preset, args=(_name,))
+    if _sel:
+        st.caption(f"✅ **Loaded:** {_PRESETS[_sel]['label']} — the form "
+                   "above now holds exactly these values.")
 
     submitted = st.button("🚀 Score transaction", type="primary", use_container_width=True)
 
